@@ -5,7 +5,7 @@ Evaluating the impact of Filter, Wrapper, and Embedded Feature Selection techniq
 The project analyzes changes in predictive accuracy ($R^2$, RMSE) and overfitting mitigation using public real estate datasets. 
 Built with Python and Scikit-learn.
 
-## 👥 Team Members (AI Vietnam - Module 1)
+## 👥 Team Members (AI Vietnam_UntitledTeam - Module 1)
 - **Đào Trung Can** (Leader / AI Engineer - Pipeline)
 - **Lê Hoàng Trọng Minh** (Tech Leader)
 - **Tùng Nguyễn** (AI Engineer - Data)
