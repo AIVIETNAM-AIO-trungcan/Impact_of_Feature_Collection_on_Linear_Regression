@@ -21,12 +21,12 @@ graph TD
     
     subgraph Experimental Evaluation Loop [Managed by Pipeline Engine]
         FeatureSelector -->|Config A:<br>100% Features| ModelBaseline(src/model.py - Baseline)
-        FeatureSelector -->|Config B:<br>Subsets Filter/Wrapper/Embedded| ModelOptimized(src/model.py - Optimized)
+        FeatureSelector -->|Config B:<br>Subsets Filter/Wrapper/<br>Embedded| ModelOptimized(src/model.py - Optimized)
     end
     
     %% Evaluation & Academic Reporting Layer
-    ModelBaseline -->|Extract Performance Metrics| Evaluate[Model Benchmarking: R², RMSE]
-    ModelOptimized -->|Extract Performance Metrics| Evaluate
+    ModelBaseline -->|Extract Performance<br> Metrics| Evaluate[Model Benchmarking: R², RMSE]
+    ModelOptimized -->|Extract Performance<br> Metrics| Evaluate
     
     Evaluate -->|Export Artifacts & Figures| Reports[(reports/)]
 
