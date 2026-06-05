@@ -25,7 +25,7 @@ graph TD
     end
     
     %% Evaluation & Academic Reporting Layer
-    ModelBaseline -->|Extract Performance<br> Metrics| Evaluate[Model Benchmarking: R², RMSE]
+    ModelBaseline -->|Extract Performance<br> Metrics| Evaluate[Model Benchmarking:<br> R², RMSE]
     ModelOptimized -->|Extract Performance<br> Metrics| Evaluate
     
     Evaluate -->|Export Artifacts & Figures| Reports[(reports/)]
