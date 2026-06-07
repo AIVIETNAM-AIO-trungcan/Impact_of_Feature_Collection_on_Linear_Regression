@@ -1,0 +1,8 @@
+#Ignore virtual environment
+.venv/
+
+#Ignore cache
+__pycache__/
+
+#Ignore raw data
+data/raw/*.csv
