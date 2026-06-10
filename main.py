@@ -1,18 +1,40 @@
 from src.data_loader import load_raw_data
 from src.preprocess import preprocess_and_save
+from src.model import train_baseline_model
+from src.report import generate_benchmark_report
 
 def run_pipeline():
     try:
-        # Step 1: Load raw data
+        print("\n" + "="*40)
+        print("🚀 STARTING ML PIPELINE")
+        print("="*40)
+        
+        # ---------------------------------------------------------
+        # STAGE 1: DATA PIPELINE (Assigned to Tung Nguyen)
+        # ---------------------------------------------------------
+        print("\n[STAGE 1] Data Loading & Preprocessing...")
         df_raw = load_raw_data("data.csv")
-        print(f"[Info] Raw data shape: {df_raw.shape}")
-        
-        # Step 2: Preprocess and save data
         df_processed = preprocess_and_save(df_raw, "processed_data.csv")
-        print(f"[Info] Processed data shape: {df_processed.shape}")
         
-    except FileNotFoundError as e:
-        print(f"[Error] {e}")
+        # ---------------------------------------------------------
+        # STAGE 2: MODEL PIPELINE (Assigned to Hoang)
+        # ---------------------------------------------------------
+        print("\n[STAGE 2] Baseline Model Training...")
+        # Assuming 'price' is the target column to predict
+        model, metrics = train_baseline_model(df_processed, target_column="price")
+        
+        # ---------------------------------------------------------
+        # STAGE 3: REPORTING (System Auto-generated)
+        # ---------------------------------------------------------
+        print("\n[STAGE 3] Generating Reports...")
+        generate_benchmark_report(metrics, "baseline_report.json")
+        
+        print("\n" + "="*40)
+        print("✅ PIPELINE EXECUTED SUCCESSFULLY!")
+        print("="*40 + "\n")
+        
+    except Exception as e:
+        print(f"\n❌ [ERROR] Pipeline failed at execution: {e}\n")
 
 if __name__ == "__main__":
     run_pipeline()
