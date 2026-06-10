@@ -1,11 +1,15 @@
-#Ignore virtual environment
+# Ignore virtual environment
 .venv/
 
-#Ignore cache
+# Ignore Python cache
 __pycache__/
+*.py[cod]
 
-#Ignore raw data
+# Ignore data files
 data/raw/*.csv
+data/processed/*.csv
+*.xlsx
+*.parquet
 
 # Ignore LaTeX build temporary files
 reports/*.aux
