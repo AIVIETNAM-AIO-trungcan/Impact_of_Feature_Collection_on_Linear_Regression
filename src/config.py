@@ -18,6 +18,7 @@ MODELS_DIR = ROOT_DIR / "models"
 REPORTS_DIR = ROOT_DIR / "reports"
 NOTEBOOKS_DIR = ROOT_DIR / "notebooks"
 
+
 # 3. Tự động tạo thư mục nếu máy đồng đội chưa có
 for folder in [RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, REPORTS_DIR, NOTEBOOKS_DIR]:
     folder.mkdir(parents=True, exist_ok=True)
