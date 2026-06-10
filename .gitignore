@@ -6,3 +6,13 @@ __pycache__/
 
 #Ignore raw data
 data/raw/*.csv
+
+# Ignore data files
+data/raw/*.csv
+data/processed/*.csv
+*.xlsx
+*.parquet
+
+# Ignore Python cache
+__pycache__/
+*.py[cod]
