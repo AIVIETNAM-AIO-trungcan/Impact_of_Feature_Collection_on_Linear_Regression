@@ -1,11 +1,9 @@
-#Ignore virtual environment
+# Ignore virtual environment
 .venv/
 
-#Ignore cache
+# Ignore Python cache
 __pycache__/
-
-#Ignore raw data
-data/raw/*.csv
+*.py[cod]
 
 # Ignore data files
 data/raw/*.csv
@@ -13,6 +11,11 @@ data/processed/*.csv
 *.xlsx
 *.parquet
 
-# Ignore Python cache
-__pycache__/
-*.py[cod]
+# Ignore LaTeX build temporary files
+reports/*.aux
+reports/*.log
+reports/*.out
+reports/*.toc
+reports/*.fls
+reports/*.fdb_latexmk
+reports/*.synctex.gz
