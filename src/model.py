@@ -30,7 +30,7 @@ def train_baseline_model(df, target_column="price", model_name="baseline_model.p
     # 3. Calculate benchmark metrics
     y_pred = model.predict(X)
     r2 = r2_score(y, y_pred)
-    rmse = mean_squared_error(y, y_pred, squared=False)
+    rmse = mean_squared_error(y, y_pred) ** 0.5
     
     metrics = {
         "model_type": "Linear Regression (Baseline)",
