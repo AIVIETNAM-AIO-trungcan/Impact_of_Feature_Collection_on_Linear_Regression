@@ -194,4 +194,11 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
     df_clean.to_csv(output_path, index=False)
     
     print(f"[-] Clean data saved at: {output_path}")
+
+    print("\n DANH SÁCH CÁC CỘT ĐANG CHỨA CHỮ (Gây lỗi Model):")                        #Check error 
+    cols_str = df_clean.select_dtypes(include=['object', 'string']).columns.tolist()    #Check error
+    print(cols_str)                                                                     #Check error
+
+    df_clean = df_clean.drop(columns=cols_str)                                          #Check error
+
     return df_clean
