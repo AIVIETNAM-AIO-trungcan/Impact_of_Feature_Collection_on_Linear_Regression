@@ -13,26 +13,42 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
     
     import re
     import numpy as np
+    import pandas as pd
 
+    # Standardize column names
+    df_clean.columns = [
+        re.sub(
+            r"_+",
+            "_",
+            re.sub(
+                r"[^a-z0-9_]",
+                "_",
+                col.lower()
+                .replace("(in rupees)", "")
+                .strip()
+            )
+        ).strip("_")
+        for col in df_clean.columns
+    ]
 
     # Drop unnecessary columns
     cols_drop = [
-        "Index",
-        "Title",
-        "Description",
-        "Status",
-        "Society",
-        "Floor"
+        "index",
+        "title",
+        "description",
+        "status",
+        "society",
+        "floor",
+        "dimensions",
+        "plot_area"
     ]
 
     df_clean = df_clean.drop(
-        columns=cols_drop,
-        errors="ignore"
+        columns=cols_drop
     )
 
-
-    # Convert Area columns
-    for col in ["Carpet Area", "Super Area"]:
+    # Area conversion
+    for col in ["carpet_area", "super_area"]:
 
         df_clean[col] = (
             df_clean[col]
@@ -42,7 +58,7 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
         )
 
 
-    # Convert Amount(in rupees)
+    # Amount conversion
     def convert_amount(x):
 
         if pd.isna(x):
@@ -66,8 +82,8 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
         return value
 
 
-    df_clean["Amount(in rupees)"] = (
-        df_clean["Amount(in rupees)"]
+    df_clean["amount"] = (
+        df_clean["amount"]
         .apply(convert_amount)
     )
 
@@ -93,7 +109,7 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
         return value
 
 
-    for col in ["Bathroom", "Balcony", "Car Parking"]:
+    for col in ["bathroom", "balcony", "car_parking"]:
 
         df_clean[col] = (
             df_clean[col]
@@ -103,16 +119,16 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
 
     # Remove rows with missing target
     df_clean = df_clean.dropna(
-        subset=["Price (in rupees)"]
+        subset=["price"]
     )
 
 
     # Median imputation
     median_cols = [
-        "Amount(in rupees)",
-        "Carpet Area",
-        "Super Area",
-        "Bathroom"
+        "amount",
+        "carpet_area",
+        "super_area",
+        "bathroom"
     ]
 
     for col in median_cols:
@@ -125,8 +141,8 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
 
     # Fill zero
     zero_fill_cols = [
-        "Balcony",
-        "Car Parking"
+        "balcony",
+        "car_parking"
     ]
 
     for col in zero_fill_cols:
@@ -140,11 +156,11 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
     # Fill categorical missing
     categorical_cols = [
         "location",
-        "Transaction",
-        "Furnishing",
+        "transaction",
+        "furnishing",
         "facing",
         "overlooking",
-        "Ownership"
+        "ownership"
     ]
 
     for col in categorical_cols:
@@ -157,12 +173,12 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
 
     # Clip Car Parking outliers
     car_parking_cap = (
-        df_clean["Car Parking"]
+        df_clean["car_parking"]
         .quantile(0.99)
     )
 
-    df_clean["Car Parking"] = (
-        df_clean["Car Parking"]
+    df_clean["car_parking"] = (
+        df_clean["car_parking"]
         .clip(upper=car_parking_cap)
     )
     
