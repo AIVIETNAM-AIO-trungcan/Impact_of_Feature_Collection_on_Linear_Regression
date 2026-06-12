@@ -13,9 +13,11 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
     
     import re
     import numpy as np
-    import pandas as pd
 
-    # Standardize column names
+    # ==================================================
+    # Standardize Column Names
+    # ==================================================
+
     df_clean.columns = [
         re.sub(
             r"_+",
@@ -31,156 +33,254 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
         for col in df_clean.columns
     ]
 
-    # Drop unnecessary columns
-    cols_drop = [
-        "index",
-        "title",
-        "description",
-        "status",
-        "society",
-        "floor",
-        "dimensions",
-        "plot_area"
-    ]
+    # ==================================================
+    # Drop Unused Columns
+    # ==================================================
 
     df_clean = df_clean.drop(
-        columns=cols_drop
+        columns=[
+            "index",
+            "title",
+            "status",
+            "description",
+            "society",
+            "dimensions",
+            "plot_area"
+        ],
+        errors="ignore"
     )
 
-    # Area conversion
-    for col in ["carpet_area", "super_area"]:
+    # ==================================================
+    # Amount Conversion
+    # ==================================================
 
-        df_clean[col] = (
-            df_clean[col]
-            .astype(str)
-            .str.extract(r"([\d.]+)")
-            .astype(float)
-        )
+    def convert_amount(value):
 
-
-    # Amount conversion
-    def convert_amount(x):
-
-        if pd.isna(x):
+        if pd.isna(value):
             return np.nan
 
-        x = str(x).strip()
+        value = str(value).strip()
 
-        match = re.search(r"([\d.]+)", x)
+        match = re.search(
+            r"([\d.]+)",
+            value
+        )
 
         if match is None:
             return np.nan
 
-        value = float(match.group(1))
+        number = float(
+            match.group(1)
+        )
 
-        if "lac" in x.lower():
-            return value * 1e5
+        value_lower = value.lower()
 
-        if "cr" in x.lower():
-            return value * 1e7
+        if "lac" in value_lower:
+            return number * 1e5
 
-        return value
+        if "cr" in value_lower:
+            return number * 1e7
 
+        return number
 
     df_clean["amount"] = (
         df_clean["amount"]
         .apply(convert_amount)
     )
 
+    # ==================================================
+    # Bathroom / Balcony Conversion
+    # ==================================================
 
-    # Convert Bathroom / Balcony / Car Parking
-    def extract_numeric_feature(x):
+    def convert_count_feature(value):
 
-        if pd.isna(x):
+        if pd.isna(value):
             return np.nan
 
-        x = str(x).strip()
+        value = str(value).strip()
 
-        match = re.search(r"(\d+)", x)
+        match = re.search(
+            r"(\d+)",
+            value
+        )
 
         if match is None:
             return np.nan
 
-        value = int(match.group(1))
+        count = int(
+            match.group(1)
+        )
 
-        if ">" in x:
-            return value + 1
+        if ">" in value:
+            return count + 1
 
-        return value
+        return count
 
-
-    for col in ["bathroom", "balcony", "car_parking"]:
+    for col in [
+        "bathroom",
+        "balcony"
+    ]:
 
         df_clean[col] = (
             df_clean[col]
-            .apply(extract_numeric_feature)
+            .apply(convert_count_feature)
+            .astype("Int64")
         )
 
+    # ==================================================
+    # Car Parking Conversion
+    # ==================================================
 
-    # Remove rows with missing target
+    def convert_parking(value):
+
+        if pd.isna(value):
+            return np.nan
+
+        value = str(value).lower()
+
+        if "covered" in value:
+            return "covered"
+
+        return "open"
+
+    df_clean["car_parking"] = (
+        df_clean["car_parking"]
+        .apply(convert_parking)
+    )
+
+    # ==================================================
+    # Area Processing
+    # ==================================================
+
+    for col in [
+        "carpet_area",
+        "super_area"
+    ]:
+
+        df_clean[col] = (
+            df_clean[col]
+            .astype(str)
+            .str.extract(
+                r"([\d.]+)"
+            )
+            .astype(float)
+        )
+
+    overlap_count = (
+        df_clean["carpet_area"]
+        .notna()
+        &
+        df_clean["super_area"]
+        .notna()
+    ).sum()
+
+    if overlap_count > 0:
+
+        raise ValueError(
+            f"Found {overlap_count} rows "
+            "containing both carpet_area "
+            "and super_area."
+        )
+
+    df_clean["area_sqft"] = (
+        df_clean["carpet_area"]
+        .fillna(
+            df_clean["super_area"]
+        )
+    )
+
+    df_clean["area_type"] = pd.Series(
+        np.where(
+            df_clean["carpet_area"].notna(),
+            "carpet",
+            np.where(
+                df_clean["super_area"].notna(),
+                "super",
+                None
+            )
+        ),
+        dtype="object"
+    )
+
+    df_clean = df_clean.drop(
+        columns=[
+            "carpet_area",
+            "super_area"
+        ]
+    )
+
+    # ==================================================
+    # Floor Processing
+    # ==================================================
+
+    floor_split = (
+        df_clean["floor"]
+        .astype(str)
+        .str.extract(
+            r"(\d+)\s+out\s+of\s+(\d+)"
+        )
+    )
+
+    df_clean["room_floor"] = pd.to_numeric(
+        floor_split[0],
+        errors="coerce"
+    )
+
+    df_clean["total_floor"] = pd.to_numeric(
+        floor_split[1],
+        errors="coerce"
+    )
+
+    df_clean = df_clean.drop(
+        columns=["floor"],
+        errors="ignore"
+    )
+
+    # ==================================================
+    # Remove Missing Target
+    # ==================================================
+
     df_clean = df_clean.dropna(
         subset=["price"]
     )
 
+    # ==================================================
+    # Reorder Columns
+    # ==================================================
 
-    # # Median imputation
-    # median_cols = [
-    #     "amount",
-    #     "carpet_area",
-    #     "super_area",
-    #     "bathroom"
-    # ]
+    ordered_columns = [
 
-    # for col in median_cols:
+        # Target
+        "price",
 
-    #     df_clean[col] = (
-    #         df_clean[col]
-    #         .fillna(df_clean[col].median())
-    #     )
+        # Numeric
+        "amount",
+        "area_sqft",
+        "bathroom",
+        "balcony",
+        "room_floor",
+        "total_floor",
 
+        # Categorical
+        "transaction",
+        "furnishing",
+        "facing",
+        "location",
+        "overlooking",
+        "car_parking",
+        "ownership",
+        "area_type"
+    ]
 
-    # # Fill zero
-    # zero_fill_cols = [
-    #     "balcony",
-    #     "car_parking"
-    # ]
+    existing_columns = [
+        col
+        for col in ordered_columns
+        if col in df_clean.columns
+    ]
 
-    # for col in zero_fill_cols:
-
-    #     df_clean[col] = (
-    #         df_clean[col]
-    #         .fillna(0)
-    #     )
-
-
-    # # Fill categorical missing
-    # categorical_cols = [
-    #     "location",
-    #     "transaction",
-    #     "furnishing",
-    #     "facing",
-    #     "overlooking",
-    #     "ownership"
-    # ]
-
-    # for col in categorical_cols:
-
-    #     df_clean[col] = (
-    #         df_clean[col]
-    #         .fillna("Unknown")
-    #     )
-
-
-    # # Clip Car Parking outliers
-    # car_parking_cap = (
-    #     df_clean["car_parking"]
-    #     .quantile(0.99)
-    # )
-
-    # df_clean["car_parking"] = (
-    #     df_clean["car_parking"]
-    #     .clip(upper=car_parking_cap)
-    # )
+    df_clean = df_clean[
+        existing_columns
+    ]
     
     # =========================================================================
     # END OF PREPROCESSING LOGIC
@@ -194,11 +294,5 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
     df_clean.to_csv(output_path, index=False)
     
     print(f"[-] Clean data saved at: {output_path}")
-
-    # print("\n DANH SÁCH CÁC CỘT ĐANG CHỨA CHỮ (Gây lỗi Model):")                        #Check error 
-    # cols_str = df_clean.select_dtypes(include=['object', 'string']).columns.tolist()    #Check error
-    # print(cols_str)                                                                     #Check error
-
-    # df_clean = df_clean.drop(columns=cols_str)                                          #Check error
 
     return df_clean

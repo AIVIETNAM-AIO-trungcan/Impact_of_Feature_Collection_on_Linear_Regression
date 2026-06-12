@@ -18,81 +18,105 @@ def train_baseline_model(df_train, df_test, target_column="price", model_name="b
     # =========================================================================
     # [TUNG NGUYEN] PREPROCESSING LOGIC (ADAPTED FOR ANTI-LEAKAGE)
     # =========================================================================
-    
-    # Median imputation
-    median_cols = [
+
+    # --------------------------------------------------
+    # Numeric Features
+    # --------------------------------------------------
+
+    numeric_cols = [
         "amount",
-        "carpet_area",
-        "super_area",
-        "bathroom"
-    ]
-
-    for col in median_cols:
-        # Learn median ONLY from Train set to prevent Data Leakage
-        col_median = X_train[col].median()
-        
-        # Apply to both Train and Test
-        X_train[col] = (
-            X_train[col]
-            .fillna(col_median)
-        )
-        X_test[col] = (
-            X_test[col]
-            .fillna(col_median)
-        )
-
-    # Fill zero
-    zero_fill_cols = [
+        "area_sqft",
+        "bathroom",
         "balcony",
-        "car_parking"
+        "room_floor",
+        "total_floor"
     ]
 
-    for col in zero_fill_cols:
-        X_train[col] = (
-            X_train[col]
-            .fillna(0)
-        )
-        X_test[col] = (
-            X_test[col]
-            .fillna(0)
-        )
+    # --------------------------------------------------
+    # Categorical Features
+    # --------------------------------------------------
 
-    # Fill categorical missing
     categorical_cols = [
-        "location",
         "transaction",
         "furnishing",
         "facing",
+        "location",
         "overlooking",
-        "ownership"
+        "car_parking",
+        "ownership",
+        "area_type"
     ]
 
+    # --------------------------------------------------
+    # Median Imputation
+    # Learn from Train only
+    # --------------------------------------------------
+
+    for col in numeric_cols:
+
+        median_value = (
+            X_train[col]
+            .median()
+        )
+
+        X_train[col] = (
+            X_train[col]
+            .fillna(median_value)
+        )
+
+        X_test[col] = (
+            X_test[col]
+            .fillna(median_value)
+        )
+
+    # --------------------------------------------------
+    # Unknown Imputation
+    # --------------------------------------------------
+
     for col in categorical_cols:
+
         X_train[col] = (
             X_train[col]
             .fillna("Unknown")
         )
+
         X_test[col] = (
             X_test[col]
             .fillna("Unknown")
         )
-    
-    # Clip Car Parking outliers
-    # Learn cap ONLY from Train set
-    car_parking_cap = (
-        X_train["car_parking"]
-        .quantile(0.99)
-    )
 
-    X_train["car_parking"] = (
-        X_train["car_parking"]
-        .clip(upper=car_parking_cap)
-    )
-    
-    X_test["car_parking"] = (
-        X_test["car_parking"]
-        .clip(upper=car_parking_cap)
-    )
+    # --------------------------------------------------
+    # Outlier Clipping
+    # Learn cap from Train only
+    # --------------------------------------------------
+
+    # outlier_cols = [
+    #     "amount",
+    #     "area_sqft",
+    #     "room_floor",
+    #     "total_floor"
+    # ]
+
+    # for col in outlier_cols:
+
+    #     upper_cap = (
+    #         X_train[col]
+    #         .quantile(0.995)
+    #     )
+
+    #     X_train[col] = (
+    #         X_train[col]
+    #         .clip(
+    #             upper=upper_cap
+    #         )
+    #     )
+
+    #     X_test[col] = (
+    #         X_test[col]
+    #         .clip(
+    #             upper=upper_cap
+    #         )
+    #     )
 
     # =========================================================================
     # [HOANG] ENCODING & MODEL TRAINING 
@@ -107,12 +131,31 @@ def train_baseline_model(df_train, df_test, target_column="price", model_name="b
 
     # 2. Train model
     model = LinearRegression()
+    print(X_train[["amount"]].corrwith(y_train))
     model.fit(X_train, y_train)
     
     # 3. Predict & Evaluate
     y_pred = model.predict(X_test)
     r2 = r2_score(y_test, y_pred)
     rmse = mean_squared_error(y_test, y_pred) ** 0.5
+    error = pd.DataFrame({
+        "actual": y_test,
+        "pred": y_pred
+    })
+
+    error["abs_error"] = (
+        error["actual"]
+        - error["pred"]
+    ).abs()
+
+    print(
+        error
+        .sort_values(
+            "abs_error",
+            ascending=False
+        )
+        .head(20)
+    )
     
     metrics = {
         "model_type": "Linear Regression (Baseline)",
@@ -124,6 +167,7 @@ def train_baseline_model(df_train, df_test, target_column="price", model_name="b
     # 4. Save the model
     model_path = MODELS_DIR / model_name
     joblib.dump(model, model_path)
+
     print(f"[-] Baseline model saved at: {model_path}")
     
     return model, metrics
