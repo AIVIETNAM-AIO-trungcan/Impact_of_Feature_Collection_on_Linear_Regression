@@ -123,64 +123,64 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
     )
 
 
-    # Median imputation
-    median_cols = [
-        "amount",
-        "carpet_area",
-        "super_area",
-        "bathroom"
-    ]
+    # # Median imputation
+    # median_cols = [
+    #     "amount",
+    #     "carpet_area",
+    #     "super_area",
+    #     "bathroom"
+    # ]
 
-    for col in median_cols:
+    # for col in median_cols:
 
-        df_clean[col] = (
-            df_clean[col]
-            .fillna(df_clean[col].median())
-        )
-
-
-    # Fill zero
-    zero_fill_cols = [
-        "balcony",
-        "car_parking"
-    ]
-
-    for col in zero_fill_cols:
-
-        df_clean[col] = (
-            df_clean[col]
-            .fillna(0)
-        )
+    #     df_clean[col] = (
+    #         df_clean[col]
+    #         .fillna(df_clean[col].median())
+    #     )
 
 
-    # Fill categorical missing
-    categorical_cols = [
-        "location",
-        "transaction",
-        "furnishing",
-        "facing",
-        "overlooking",
-        "ownership"
-    ]
+    # # Fill zero
+    # zero_fill_cols = [
+    #     "balcony",
+    #     "car_parking"
+    # ]
 
-    for col in categorical_cols:
+    # for col in zero_fill_cols:
 
-        df_clean[col] = (
-            df_clean[col]
-            .fillna("Unknown")
-        )
+    #     df_clean[col] = (
+    #         df_clean[col]
+    #         .fillna(0)
+    #     )
 
 
-    # Clip Car Parking outliers
-    car_parking_cap = (
-        df_clean["car_parking"]
-        .quantile(0.99)
-    )
+    # # Fill categorical missing
+    # categorical_cols = [
+    #     "location",
+    #     "transaction",
+    #     "furnishing",
+    #     "facing",
+    #     "overlooking",
+    #     "ownership"
+    # ]
 
-    df_clean["car_parking"] = (
-        df_clean["car_parking"]
-        .clip(upper=car_parking_cap)
-    )
+    # for col in categorical_cols:
+
+    #     df_clean[col] = (
+    #         df_clean[col]
+    #         .fillna("Unknown")
+    #     )
+
+
+    # # Clip Car Parking outliers
+    # car_parking_cap = (
+    #     df_clean["car_parking"]
+    #     .quantile(0.99)
+    # )
+
+    # df_clean["car_parking"] = (
+    #     df_clean["car_parking"]
+    #     .clip(upper=car_parking_cap)
+    # )
     
     # =========================================================================
     # END OF PREPROCESSING LOGIC
@@ -195,10 +195,10 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
     
     print(f"[-] Clean data saved at: {output_path}")
 
-    print("\n DANH SÁCH CÁC CỘT ĐANG CHỨA CHỮ (Gây lỗi Model):")                        #Check error 
-    cols_str = df_clean.select_dtypes(include=['object', 'string']).columns.tolist()    #Check error
-    print(cols_str)                                                                     #Check error
+    # print("\n DANH SÁCH CÁC CỘT ĐANG CHỨA CHỮ (Gây lỗi Model):")                        #Check error 
+    # cols_str = df_clean.select_dtypes(include=['object', 'string']).columns.tolist()    #Check error
+    # print(cols_str)                                                                     #Check error
 
-    df_clean = df_clean.drop(columns=cols_str)                                          #Check error
+    # df_clean = df_clean.drop(columns=cols_str)                                          #Check error
 
     return df_clean
