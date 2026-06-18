@@ -7,9 +7,9 @@ features:
     - "balcony"
     - "room_floor"
     - "total_floor"
-    - "log_amount"
-    - "log_area"
-    - "location_freq"
+    # - "log_amount"
+    # - "log_area"
+    # - "location_freq"
   categorical_cols:
     - "location"
     - "transaction"
