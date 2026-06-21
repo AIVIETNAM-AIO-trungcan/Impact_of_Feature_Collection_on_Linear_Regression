@@ -38,8 +38,8 @@ def run_pipeline():
         cat_cols = cfg['features']['categorical_cols']
         
         # Separate features (X) for processing
-        X_train_raw = df_train.drop(columns=['price'])
-        X_test_raw = df_test.drop(columns=['price'])
+        X_train_raw = df_train.drop(columns=['amount'])
+        X_test_raw = df_test.drop(columns=['amount'])
         
         # Clean and synchronize features (Fit on Train, Transform Test to avoid leakage)
         X_train_clean, X_test_clean = fit_transform_features(
@@ -47,15 +47,15 @@ def run_pipeline():
         )
         
         # Recombine with target variable for model training
-        df_train_final = pd.concat([X_train_clean, df_train['price']], axis=1)
-        df_test_final = pd.concat([X_test_clean, df_test['price']], axis=1)
+        df_train_final = pd.concat([X_train_clean, df_train['amount']], axis=1)
+        df_test_final = pd.concat([X_test_clean, df_test['amount']], axis=1)
 
         # ---------------------------------------------------------
         # STAGE 2: MODEL PIPELINE (Assigned to Hoang)
         # ---------------------------------------------------------
         print("\n[STAGE 2] Baseline Model Training...")
-        # Assuming 'price' is the target column to predict
-        model, metrics = train_baseline_model(df_train_final, df_test_final, target_column="price")
+        # Assuming 'amount' is the target column to predict
+        model, metrics = train_baseline_model(df_train_final, df_test_final, target_column="amount")
         
         # ---------------------------------------------------------
         # STAGE 3: REPORTING (System Auto-generated)

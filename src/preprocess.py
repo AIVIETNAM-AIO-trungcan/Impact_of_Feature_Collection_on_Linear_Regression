@@ -1,4 +1,6 @@
+import re
 import pandas as pd
+import numpy as np
 from src.config import PROCESSED_DATA_DIR
 
 def preprocess_and_save(df, output_file_name="processed_data.csv"):
@@ -10,28 +12,18 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
     # =========================================================================
     # [TODO - TUNG NGUYEN] 
     # =========================================================================
-    
-    import re
-    import numpy as np
 
     # ==================================================
     # Standardize Column Names
     # ==================================================
 
     df_clean.columns = [
-        re.sub(
-            r"_+",
-            "_",
-            re.sub(
-                r"[^a-z0-9_]",
-                "_",
-                col.lower()
-                .replace("(in rupees)", "")
-                .strip()
-            )
-        ).strip("_")
-        for col in df_clean.columns
-    ]
+        re.sub(r"_+","_",
+            re.sub(r"[^a-z0-9_]","_",
+                col.lower().replace("(in rupees)", "").strip()
+                )
+            ).strip("_")
+        for col in df_clean.columns]
 
     # ==================================================
     # Drop Unused Columns
@@ -41,17 +33,19 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
         columns=[
             "index",
             "title",
-            "status",
             "description",
+            "status",
             "society",
+            "plot_area",
             "dimensions",
-            "plot_area"
+            "price",
+            "car_parking"
         ],
         errors="ignore"
     )
 
     # ==================================================
-    # Amount Conversion
+    # Helper Functions
     # ==================================================
 
     def convert_amount(value):
@@ -60,227 +54,157 @@ def preprocess_and_save(df, output_file_name="processed_data.csv"):
             return np.nan
 
         value = str(value).strip()
+        match = re.search(r"([\d.]+)", value)
 
-        match = re.search(
-            r"([\d.]+)",
-            value
-        )
-
-        if match is None:
+        if not match:
             return np.nan
 
-        number = float(
-            match.group(1)
-        )
+        number = float(match.group(1))
+        value = value.lower()
 
-        value_lower = value.lower()
+        if "lac" in value:
+            return number * 100000
 
-        if "lac" in value_lower:
-            return number * 1e5
-
-        if "cr" in value_lower:
-            return number * 1e7
+        if "cr" in value:
+            return number * 10000000
 
         return number
 
-    df_clean["amount"] = (
-        df_clean["amount"]
-        .apply(convert_amount)
-    )
-
-    # ==================================================
-    # Bathroom / Balcony Conversion
-    # ==================================================
-
-    def convert_count_feature(value):
+    def extract_count(value):
 
         if pd.isna(value):
             return np.nan
 
-        value = str(value).strip()
+        match = re.search(r"(\d+)", str(value))
 
-        match = re.search(
-            r"(\d+)",
-            value
-        )
-
-        if match is None:
+        if not match:
             return np.nan
 
-        count = int(
-            match.group(1)
+        count = int(match.group(1))
+
+        return count + 1 if ">" in str(value) else count
+
+    # ==================================================
+    # Convert Target Variable
+    # ==================================================
+
+    df_clean["amount"] = df_clean["amount"].apply(convert_amount)
+
+    # ==================================================
+    # Convert Count Features
+    # ==================================================
+
+    for col in ["bathroom", "balcony"]:
+
+        if col in df_clean.columns:
+            df_clean[col] = df_clean[col].apply(extract_count).astype("Int64")
+
+    # ==================================================
+    # Merge Carpet Area & Super Area
+    # ==================================================
+
+    for col in ["carpet_area", "super_area"]:
+
+        if col in df_clean.columns:
+            df_clean[col] = (
+                df_clean[col]
+                .astype(str)
+                .str.extract(r"([\d.]+)")
+                .astype(float)
+            )
+
+    df_clean["area"] = df_clean["carpet_area"].fillna(df_clean["super_area"])
+
+    df_clean = df_clean.drop(columns=["carpet_area", "super_area"],errors="ignore")
+
+    # ==================================================
+    # Extract Room Floor & Total Floor
+    # ==================================================
+
+    if "floor" in df_clean.columns:
+
+        floor_info = (
+            df_clean["floor"]
+            .astype(str)
+            .str.extract(r"(\d+)\s+out\s+of\s+(\d+)")
         )
 
-        if ">" in value:
-            return count + 1
+        df_clean["room_floor"] = pd.to_numeric(floor_info[0], errors="coerce")
+        df_clean["total_floor"] = pd.to_numeric(floor_info[1], errors="coerce")
 
-        return count
+        df_clean = df_clean.drop(columns=["floor"], errors="ignore")
 
-    for col in [
-        "bathroom",
-        "balcony"
-    ]:
+    # ==================================================
+    # Transaction Processing
+    # ==================================================
 
-        df_clean[col] = (
-            df_clean[col]
-            .apply(convert_count_feature)
+    if "transaction" in df_clean.columns:
+
+        df_clean = df_clean[
+            df_clean["transaction"] != "Rent/Lease"
+        ]
+
+        df_clean["transaction"] = (
+            df_clean["transaction"]
+            .replace("Other", np.nan)
+        )
+
+    # ==================================================
+    # Overlooking Processing
+    # ==================================================
+
+    if "overlooking" in df_clean.columns:
+
+        overlooking = (
+            df_clean["overlooking"]
+            .fillna("")
+            .str.lower()
+        )
+
+        df_clean["main_road_view"] = (
+            overlooking
+            .str.contains("main road")
             .astype("Int64")
         )
 
-    # ==================================================
-    # Car Parking Conversion
-    # ==================================================
-
-    def convert_parking(value):
-
-        if pd.isna(value):
-            return np.nan
-
-        value = str(value).lower()
-
-        if "covered" in value:
-            return "covered"
-
-        return "open"
-
-    df_clean["car_parking"] = (
-        df_clean["car_parking"]
-        .apply(convert_parking)
-    )
-
-    # ==================================================
-    # Area Processing
-    # ==================================================
-
-    for col in [
-        "carpet_area",
-        "super_area"
-    ]:
-
-        df_clean[col] = (
-            df_clean[col]
-            .astype(str)
-            .str.extract(
-                r"([\d.]+)"
+        df_clean["amenity_view"] = (
+            (
+                overlooking.str.contains("garden/park")
+                |
+                overlooking.str.contains("pool")
             )
-            .astype(float)
+            .astype("Int64")
         )
 
-    overlap_count = (
-        df_clean["carpet_area"]
-        .notna()
-        &
-        df_clean["super_area"]
-        .notna()
-    ).sum()
-
-    if overlap_count > 0:
-
-        raise ValueError(
-            f"Found {overlap_count} rows "
-            "containing both carpet_area "
-            "and super_area."
-        )
-
-    df_clean["area_sqft"] = (
-        df_clean["carpet_area"]
-        .fillna(
-            df_clean["super_area"]
-        )
-    )
-
-    df_clean["area_type"] = pd.Series(
-        np.where(
-            df_clean["carpet_area"].notna(),
-            "carpet",
-            np.where(
-                df_clean["super_area"].notna(),
-                "super",
-                None
-            )
-        ),
-        dtype="object"
-    )
-
-    df_clean = df_clean.drop(
-        columns=[
-            "carpet_area",
-            "super_area"
-        ]
-    )
-
-    # ==================================================
-    # Floor Processing
-    # ==================================================
-
-    floor_split = (
-        df_clean["floor"]
-        .astype(str)
-        .str.extract(
-            r"(\d+)\s+out\s+of\s+(\d+)"
-        )
-    )
-
-    df_clean["room_floor"] = pd.to_numeric(
-        floor_split[0],
-        errors="coerce"
-    )
-
-    df_clean["total_floor"] = pd.to_numeric(
-        floor_split[1],
-        errors="coerce"
-    )
-
-    df_clean = df_clean.drop(
-        columns=["floor"],
-        errors="ignore"
-    )
+        df_clean = df_clean.drop(columns=["overlooking"])
 
     # ==================================================
     # Remove Missing Target
     # ==================================================
 
-    df_clean = df_clean.dropna(
-        subset=["price"]
-    )
+    df_clean = df_clean.dropna(subset=["amount"])
 
     # ==================================================
-    # Reorder Columns
+    # Final Feature Selection
     # ==================================================
 
     ordered_columns = [
-
-        # Target
-        "price",
-
-        # Numeric
         "amount",
-        "area_sqft",
+        "area",
         "bathroom",
         "balcony",
         "room_floor",
         "total_floor",
-
-        # Categorical
         "transaction",
         "furnishing",
         "facing",
         "location",
-        "overlooking",
-        "car_parking",
         "ownership",
-        "area_type"
+        "main_road_view",
+        "amenity_view"
     ]
 
-    existing_columns = [
-        col
-        for col in ordered_columns
-        if col in df_clean.columns
-    ]
-
-    df_clean = df_clean[
-        existing_columns
-    ]
+    df_clean = df_clean[[c for c in ordered_columns if c in df_clean.columns]]
     
     # =========================================================================
     # END OF PREPROCESSING LOGIC

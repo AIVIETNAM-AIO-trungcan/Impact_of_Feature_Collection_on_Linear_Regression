@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error
 from src.config import MODELS_DIR
 
-def train_baseline_model(df_train, df_test, target_column="price", model_name="baseline_model.pkl"):
+def train_baseline_model(df_train, df_test, target_column="amount", model_name="baseline_model.pkl"):
     """Train a baseline Linear Regression model using Train set."""
     print("[-] Starting baseline model training with Scikit-learn Pipeline...")
 
@@ -18,7 +18,6 @@ def train_baseline_model(df_train, df_test, target_column="price", model_name="b
 
     # 2. Train model
     model = LinearRegression()
-    print(X_train[["amount"]].corrwith(y_train))
     model.fit(X_train, y_train)
     
     # 3. Predict & Evaluate
