@@ -71,12 +71,20 @@ def run_pipeline():
         #   - X_train_selected: Filtered features [n_samples, k]
         #   - X_test_selected: Filtered features [n_samples, k]
         # ---------------------------------------------------------
-        print("\n[STAGE 1.8.5] Running Gatekeeper (Feature Selection)...")
-        y_train_raw = df_train["amount"]
+        use_selector = cfg.get("experiment", {}).get("use_feature_selector", False)
 
-        X_train_selected, X_test_selected = select_features(
-            X_train_clean, y_train_raw, X_test_clean, cfg
-        )
+        if use_selector:
+            print("\n[STAGE 1.8.5] Gatekeeper ENABLED: Running Feature Selection...")
+            y_train_raw = df_train["amount"]
+
+            X_train_selected, X_test_selected = select_features(
+                X_train_clean, y_train_raw, X_test_clean, cfg
+            )
+        else:
+            print(
+                "\n[STAGE 1.8.5] Gatekeeper DISABLED: Running Baseline (All Features)..."
+            )
+            X_train_selected, X_test_selected = X_train_clean, X_test_clean
 
         # ---------------------------------------------------------
         # STAGE 1.9: DYNAMIC TRANSFORMATION (Log/Raw)
