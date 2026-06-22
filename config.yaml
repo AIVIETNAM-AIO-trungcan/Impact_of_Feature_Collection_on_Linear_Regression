@@ -1,0 +1,39 @@
+# 1. Feature Selection (For Data Engineer)
+features:
+  numerical_cols:
+    - area
+    - bathroom
+    - balcony
+    - room_floor
+    - total_floor
+    - main_road_view
+    - amenity_view
+  categorical_cols:
+    - location
+    - transaction
+    - furnishing
+    - facing
+    - ownership
+
+# 2. Model Parameters (For Model Engineer)
+model_params:
+  algorithm: "RandomForestRegressor"
+  n_estimators: 100
+  max_depth: 5
+  random_state: 42
+
+# 3. Experiment Settings (Pipeline Branching)
+experiment:
+  # Target transformation mode: "raw" (no change) or "log" (np.log1p)
+  target_transform: "log"
+  # Target column for predictive modeling
+  target_col: "amount"
+  # List of input features requiring log transformation
+  log_features:
+    - "area"
+
+  # Feature Selection (Gatekeeper) configuration
+  # use_feature_selector: Boolean toggle to enable/disable univariate selection
+  # top_k_features: Integer defines the number of top-scoring features to retain
+  use_feature_selector: true
+  top_k_features: 20

@@ -1,0 +1,27 @@
+{
+    "model_type": "Linear Regression (Baseline)",
+    "features_used": [
+        "area",
+        "bathroom",
+        "balcony",
+        "room_floor",
+        "total_floor",
+        "main_road_view",
+        "amenity_view",
+        "location_gurgaon",
+        "location_hyderabad",
+        "location_jaipur",
+        "location_kolkata",
+        "location_mumbai",
+        "location_new-delhi",
+        "transaction_New Property",
+        "transaction_Resale",
+        "facing_East",
+        "facing_North - East",
+        "facing_Unknown",
+        "ownership_Freehold",
+        "ownership_Unknown"
+    ],
+    "R2_Score": 0.6705,
+    "RMSE": 0.4723
+}
