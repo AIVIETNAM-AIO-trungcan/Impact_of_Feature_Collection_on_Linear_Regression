@@ -1,4 +1,5 @@
 from pathlib import Path
+import yaml
 
 # 1. Tự động nhận diện môi trường (Jupyter hoặc Script) để tìm thư mục gốc
 try:
@@ -23,18 +24,45 @@ NOTEBOOKS_DIR = ROOT_DIR / "notebooks"
 for folder in [RAW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, REPORTS_DIR, NOTEBOOKS_DIR]:
     folder.mkdir(parents=True, exist_ok=True)
 
-# 4. In thông báo và kiểm tra file (Kế thừa từ code cũ của Can)
+# 4. Hàm đọc file cấu hình YAML (MỚI THÊM CHO SPRINT 2)
+def load_pipeline_config():
+    """Đọc file config.yaml từ thư mục gốc và trả về dạng Dictionary"""
+    config_path = ROOT_DIR / "config.yaml"
+    
+    if not config_path.exists():
+        raise FileNotFoundError(f"🚨 Không tìm thấy file cấu hình tại {config_path}")
+        
+    with open(config_path, "r", encoding="utf-8") as file:
+        config = yaml.safe_load(file)
+        
+    return config
+
+# 5. In thông báo và kiểm tra file (Tích hợp Data & Config)
 if __name__ == "__main__":
     print(f"📌 Project Root: {ROOT_DIR}")
-    print("✅ Hạ tầng đường dẫn đã được liên kết!\n")
+    print("✅ Hạ tầng thư mục đã được liên kết!\n")
     
-    # Kiểm tra file dữ liệu cho Tùng
+    # --- Kiểm tra Data ---
     target_data_file = RAW_DATA_DIR / 'data.csv'
     
     if target_data_file.exists():
         print('🚀 Data is ready!')
         print('File extension: ', target_data_file.suffix)
         print('File name: ', target_data_file.stem)
-        print(f'Full file path: {target_data_file}')
+        print(f'Full file path: {target_data_file}\n')
     else:
-        print('⚠️ Pipeline status: Waiting for Tung Nguyen to upload data.csv into data/raw/')
+        print('⚠️ Pipeline status: Waiting for Tung Nguyen to upload data.csv into data/raw/\n')
+
+    # --- Kiểm tra Config YAML (Phần mới thêm) ---
+    print("="*40)
+    print("⚙️  KIỂM TRA FILE CẤU HÌNH (config.yaml)")
+    try:
+        cfg = load_pipeline_config()
+        print("✅ Đã nạp thành công cấu hình từ config.yaml")
+        print(f"📊 Số lượng features tự động nhận diện:")
+        print(f"   - Numerical: {len(cfg['features']['numerical_cols'])} cột")
+        print(f"   - Categorical: {len(cfg['features']['categorical_cols'])} cột")
+        print(f" Thuật toán Model: {cfg['model_params']['algorithm']}")
+    except Exception as e:
+        print(f"❌ Lỗi khi đọc config.yaml: {e}")
+    print("="*40)

@@ -1,40 +1,51 @@
 import joblib
+import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error
 from src.config import MODELS_DIR
 
-def train_baseline_model(df, target_column="price", model_name="baseline_model.pkl"):
-    """
-    Train a baseline Linear Regression model using all available features.
-    """
-    print("[-] Starting baseline model training...")
+def train_baseline_model(df_train, df_test, target_column="amount", model_name="baseline_model.pkl"):
+    """Train a baseline Linear Regression model using Train set."""
+    print("[-] Starting baseline model training with Scikit-learn Pipeline...")
+
+    # 1. Separate Features (X) and Target (y) for both Train and Test sets
+    X_train = df_train.drop(columns=[target_column])
+    y_train = df_train[target_column]
     
-    # 1. Define features and target
-    if target_column not in df.columns:
-        raise ValueError(f"Target column '{target_column}' not found.")
-        
-    X = df.drop(columns=[target_column])
-    y = df[target_column]
+    X_test = df_test.drop(columns=[target_column])
+    y_test = df_test[target_column]
     
-    # =========================================================================
-    # [TODO - HOANG] 
-    # ---> CODING HERE <---
-    # Implement Train-Test Split here to evaluate the model correctly.
-    # Currently, it trains and evaluates on the entire dataset.
-    # =========================================================================
-    
+
     # 2. Train model
     model = LinearRegression()
-    model.fit(X, y)
+    model.fit(X_train, y_train)
     
-    # 3. Calculate benchmark metrics
-    y_pred = model.predict(X)
-    r2 = r2_score(y, y_pred)
-    rmse = mean_squared_error(y, y_pred) ** 0.5
+    # 3. Predict & Evaluate
+    y_pred = model.predict(X_test)
+    r2 = r2_score(y_test, y_pred)
+    rmse = mean_squared_error(y_test, y_pred) ** 0.5
+    error = pd.DataFrame({
+        "actual": y_test,
+        "pred": y_pred
+    })
+
+    error["abs_error"] = (
+        error["actual"]
+        - error["pred"]
+    ).abs()
+
+    print(
+        error
+        .sort_values(
+            "abs_error",
+            ascending=False
+        )
+        .head(20)
+    )
     
     metrics = {
         "model_type": "Linear Regression (Baseline)",
-        "features_used": list(X.columns),
+        "features_used": list(X_train.columns),
         "R2_Score": round(r2, 4),
         "RMSE": round(rmse, 4)
     }
@@ -42,6 +53,7 @@ def train_baseline_model(df, target_column="price", model_name="baseline_model.p
     # 4. Save the model
     model_path = MODELS_DIR / model_name
     joblib.dump(model, model_path)
+
     print(f"[-] Baseline model saved at: {model_path}")
     
     return model, metrics

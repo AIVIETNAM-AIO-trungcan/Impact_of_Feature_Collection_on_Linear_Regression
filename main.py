@@ -150,16 +150,18 @@ def run_pipeline():
         print("\n[STAGE 3] Generating Advanced Benchmark Report...")
 
         # 1. Determine transformation context
-        is_log = (transform_mode == "log")
-        
+        is_log = transform_mode == "log"
+
         # 2. Build selection context if Gatekeeper was enabled
         # This metadata allows Minh to track if we used Filter, Wrapper, or Embedded
         selector_context = None
         if cfg.get("experiment", {}).get("use_feature_selector", False):
             selector_context = {
-                "method": cfg.get("experiment", {}).get("selector_method", "f_regression"),
-                "technique_type": "Filter", # Expandable to 'Wrapper' or 'Embedded'
-                "features": list(X_train_transformed.columns)
+                "method": cfg.get("experiment", {}).get(
+                    "selector_method", "f_regression"
+                ),
+                "technique_type": "Filter",  # Expandable to 'Wrapper' or 'Embedded'
+                "features": list(X_train_transformed.columns),
             }
 
         # 3. Generate final JSON report
@@ -167,12 +169,15 @@ def run_pipeline():
             metrics=metrics,
             output_file="baseline_report.json",
             is_log_transformed=is_log,
-            selector_context=selector_context
+            selector_context=selector_context,
         )
-        
-        print("\n" + "="*40)
+
+        print("\n" + "=" * 40)
         print("✅ PIPELINE EXECUTED SUCCESSFULLY!")
-        print("="*40 + "\n")
+        print("=" * 40 + "\n")
+
+    except Exception as e:
+        print(f"\n❌ [ERROR] Pipeline failed at execution: {e}\n")
 
 
 if __name__ == "__main__":

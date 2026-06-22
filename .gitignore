@@ -19,3 +19,7 @@ reports/*.toc
 reports/*.fls
 reports/*.fdb_latexmk
 reports/*.synctex.gz
+
+# Ignore model output files and artifacts
+*.pkl
+reports/baseline_report.json
