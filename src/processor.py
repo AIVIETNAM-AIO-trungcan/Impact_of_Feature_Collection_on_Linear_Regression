@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 def fit_transform_features(X_train, X_test, numeric_cols, categorical_cols):
     """
     Tách phần tiền xử lý dữ liệu để đưa vào model
@@ -29,13 +30,7 @@ def fit_transform_features(X_train, X_test, numeric_cols, categorical_cols):
     # Learn From Train Only
     # ==================================================
 
-    clip_cols = [
-        "area",
-        "room_floor",
-        "total_floor",
-        "bathroom",
-        "balcony"
-    ]
+    clip_cols = ["area", "room_floor", "total_floor", "bathroom", "balcony"]
 
     for col in clip_cols:
 
@@ -44,13 +39,9 @@ def fit_transform_features(X_train, X_test, numeric_cols, categorical_cols):
 
         upper_cap = X_train[col].quantile(0.995)
 
-        X_train[col] = X_train[col].clip(
-            upper=upper_cap
-        )
+        X_train[col] = X_train[col].clip(upper=upper_cap)
 
-        X_test[col] = X_test[col].clip(
-            upper=upper_cap
-        )
+        X_test[col] = X_test[col].clip(upper=upper_cap)
 
     # ==================================================
     # Categorical Imputation
@@ -72,6 +63,35 @@ def fit_transform_features(X_train, X_test, numeric_cols, categorical_cols):
     X_test = pd.get_dummies(X_test, columns=categorical_cols)
 
     # Align Test columns with Train columns
-    X_train, X_test = X_train.align(X_test, join='left', axis=1, fill_value=0)
-    
+    X_train, X_test = X_train.align(X_test, join="left", axis=1, fill_value=0)
+
     return X_train, X_test
+
+
+# =====================================================================
+# NHIỆM VỤ 2: CÔNG TẮC CHUYỂN ĐỔI TOÁN HỌC LOG/RAW (Tính năng mới)
+# =====================================================================
+def apply_feature_transform(df, config):
+    """
+    Hàm tự động áp dụng biến đổi log cho các cột đầu vào (features)
+    dựa trên cấu hình trong config.yaml
+    """
+    df_transformed = df.copy()
+
+    # 1. Đọc trạng thái công tắc từ config
+    transform_mode = config.get("experiment", {}).get("target_transform", "raw")
+
+    # 2. Rẽ nhánh logic
+    if transform_mode == "log":
+        log_cols = config.get("experiment", {}).get("log_features", [])
+        for col in log_cols:
+            if col in df_transformed.columns:
+                # Ép kiểu về float64 để tránh lỗi khi numpy lấy log trên số nguyên (int)
+                df_transformed[col] = df_transformed[col].astype(float)
+                # Dùng np.log1p để lấy log an toàn
+                df_transformed[col] = np.log1p(df_transformed[col])
+                print(f"[Processor] Đã áp dụng Log Transform cho cột: {col}")
+    else:
+        print("[Processor] Đang ở chế độ RAW. Giữ nguyên giá trị gốc.")
+
+    return df_transformed
