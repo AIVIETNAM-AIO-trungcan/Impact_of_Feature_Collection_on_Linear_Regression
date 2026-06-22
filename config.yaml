@@ -24,7 +24,7 @@ model_params:
 
 # 3. Experiment Settings (Pipeline Branching)
 experiment:
-  target_transform: "raw" # Toggle: "raw" (giữ nguyên) hoặc "log" (dùng np.log1p)
+  target_transform: "log" # Toggle: "raw" (giữ nguyên) hoặc "log" (dùng np.log1p)
   target_col: "amount" # Tên cột mục tiêu (giá nhà)
   log_features: # Danh sách các cột đầu vào cần lấy log
     - "area"

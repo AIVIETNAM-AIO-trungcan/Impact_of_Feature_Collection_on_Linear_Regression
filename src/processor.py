@@ -71,7 +71,7 @@ def fit_transform_features(X_train, X_test, numeric_cols, categorical_cols):
 # =====================================================================
 # NHIỆM VỤ 2: CÔNG TẮC CHUYỂN ĐỔI TOÁN HỌC LOG/RAW (Tính năng mới)
 # =====================================================================
-def apply_feature_transform(df, config):
+def apply_feature_transform(df, config, dataset_name=""):
     """
     Hàm tự động áp dụng biến đổi log cho các cột đầu vào (features)
     dựa trên cấu hình trong config.yaml
@@ -90,8 +90,12 @@ def apply_feature_transform(df, config):
                 df_transformed[col] = df_transformed[col].astype(float)
                 # Dùng np.log1p để lấy log an toàn
                 df_transformed[col] = np.log1p(df_transformed[col])
-                print(f"[Processor] Đã áp dụng Log Transform cho cột: {col}")
+                print(
+                    f"   -> [Processor] Feature (X - {dataset_name}): Applied Log Transform to '{col}'."
+                )
     else:
-        print("[Processor] Đang ở chế độ RAW. Giữ nguyên giá trị gốc.")
+        print(
+            f"   -> [Processor] Feature (X - {dataset_name}): RAW mode active (Keeping original values)."
+        )
 
     return df_transformed
