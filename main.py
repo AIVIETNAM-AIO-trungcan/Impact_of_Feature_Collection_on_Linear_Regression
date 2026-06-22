@@ -5,6 +5,7 @@ from src.preprocess import preprocess_and_save
 from src.data_splitter import split_and_save_data
 from src.processor import fit_transform_features
 from src.processor import fit_transform_features, apply_feature_transform
+from src.feature_selector import select_features
 from src.model import train_baseline_model
 from src.report import generate_benchmark_report
 from src.config import load_pipeline_config
@@ -55,16 +56,46 @@ def run_pipeline():
         # df_test_final = pd.concat([X_test_clean, df_test["amount"]], axis=1)
 
         # ---------------------------------------------------------
-        # STAGE 1.9: DYNAMIC TRANSFORMATION (Log/Raw Toggle)
+        # STAGE 1.8.5: GATEKEEPER (FEATURE SELECTION)
         # ---------------------------------------------------------
-        print("\n[STAGE 1.9] Checking Dynamic Math Transformation...")
+        # Purpose:
+        #   - Perform univariate feature selection to mitigate
+        #     the curse of dimensionality.
+        # Input:
+        #   - X_train_clean: Preprocessed features [n_samples, n_features]
+        #   - y_train_raw: Target variable used to calculate F-scores
+        # Process:
+        #   - Invoke 'select_features' to retain only Top K features
+        #     defined in config.yaml.
+        # Output:
+        #   - X_train_selected: Filtered features [n_samples, k]
+        #   - X_test_selected: Filtered features [n_samples, k]
+        # ---------------------------------------------------------
+        print("\n[STAGE 1.8.5] Running Gatekeeper (Feature Selection)...")
+        y_train_raw = df_train["amount"]
+
+        X_train_selected, X_test_selected = select_features(
+            X_train_clean, y_train_raw, X_test_clean, cfg
+        )
+
+        # ---------------------------------------------------------
+        # STAGE 1.9: DYNAMIC TRANSFORMATION (Log/Raw)
+        # ---------------------------------------------------------
+        # Purpose:
+        #   - Apply log transformation to selected features if configured.
+        # Input:
+        #   - X_train_selected, X_test_selected: Filtered features [n_samples, k]
+        # Output:
+        #   - X_train_transformed, X_test_transformed: Transformed features
+        # ---------------------------------------------------------
+        print("\n[STAGE 1.9] Applying dynamic transformations...")
 
         # 1. Transform independent variables (X) based on config
         X_train_transformed = apply_feature_transform(
-            X_train_clean, cfg, dataset_name="Train"
+            X_train_selected, cfg, dataset_name="Train"
         )
         X_test_transformed = apply_feature_transform(
-            X_test_clean, cfg, dataset_name="Test"
+            X_test_selected, cfg, dataset_name="Test"
         )
 
         # 2. Transform target variable (y)

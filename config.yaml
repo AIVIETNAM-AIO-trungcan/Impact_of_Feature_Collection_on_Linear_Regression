@@ -24,9 +24,16 @@ model_params:
 
 # 3. Experiment Settings (Pipeline Branching)
 experiment:
-  target_transform: "log" # Toggle: "raw" (giữ nguyên) hoặc "log" (dùng np.log1p)
-  target_col: "amount" # Tên cột mục tiêu (giá nhà)
-  log_features: # Danh sách các cột đầu vào cần lấy log
+  # Target transformation mode: "raw" (no change) or "log" (np.log1p)
+  target_transform: "log"
+  # Target column for predictive modeling
+  target_col: "amount"
+  # List of input features requiring log transformation
+  log_features:
     - "area"
 
-  top_k_features: 20 # Số lượng cột liên quan nhất được giữ lại (Gatekeeper)
+  # Feature Selection (Gatekeeper) configuration
+  # use_feature_selector: Boolean toggle to enable/disable univariate selection
+  # top_k_features: Integer defines the number of top-scoring features to retain
+  use_feature_selector: true
+  top_k_features: 20
