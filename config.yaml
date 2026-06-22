@@ -28,3 +28,5 @@ experiment:
   target_col: "amount" # Tên cột mục tiêu (giá nhà)
   log_features: # Danh sách các cột đầu vào cần lấy log
     - "area"
+
+  top_k_features: 20 # Số lượng cột liên quan nhất được giữ lại (Gatekeeper)
