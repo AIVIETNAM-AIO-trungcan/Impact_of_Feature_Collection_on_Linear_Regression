@@ -1,5 +1,11 @@
 {
-    "model_type": "Linear Regression (Baseline)",
+    "model_type": "Linear Regression (Optimized)",
+    "evaluation_context": {
+        "method": "f_regression",
+        "technique_type": "Filter",
+        "feature_selection_enabled": true
+    },
+    "total_features": 20,
     "features_used": [
         "area",
         "bathroom",
@@ -22,6 +28,11 @@
         "ownership_Freehold",
         "ownership_Unknown"
     ],
-    "R2_Score": 0.6705,
-    "RMSE": 0.4723
+    "metrics": {
+        "R2_Score (Log)": 0.6705,
+        "R2_Score (Rupee)": 0.0191,
+        "RMSE (Rupee)": 74846862.99,
+        "MAE (Rupee)": 4574042.46,
+        "MAPE (%)": "39.78%"
+    }
 }
