@@ -13,7 +13,7 @@ def generate_benchmark_report(
     """
     Generates a comprehensive benchmark report including Rupee-converted metrics,
     tracks both Log-space and Rupee-space R2 scores if applicable,
-    and displays the total number of features used.
+    calculates Adjusted R2, and displays the total number of features used.
     """
     print(f"[-] Generating benchmark report: {output_file}...")
 
@@ -21,9 +21,13 @@ def generate_benchmark_report(
     y_true = np.array(metrics["y_true"])
     y_pred = np.array(metrics["y_pred"])
 
-    # Extract features list and count them
+    # Extract features list and count them (p = number of features)
     features_list = metrics.get("features_used", [])
     total_features = len(features_list)
+
+    # n = number of samples
+    n = len(y_true)
+    p = total_features
 
     # Extract R2 from model.py (If log-transformed, this is the Log-space R2)
     r2_model = metrics.get("R2_Score", 0.0)
@@ -41,19 +45,32 @@ def generate_benchmark_report(
     # Calculate R2 on the actual currency scale (Rupee)
     r2_rupee = r2_score(y_true, y_pred)
 
-    # 3. Construct the metrics dictionary dynamically
+    # 3. Calculate Adjusted R2
+    # Ensure n > p + 1 to avoid division by zero
+    adj_r2_rupee = (
+        1 - ((1 - r2_rupee) * (n - 1) / (n - p - 1)) if n > p + 1 else r2_rupee
+    )
+    if is_log_transformed:
+        adj_r2_log = (
+            1 - ((1 - r2_model) * (n - 1) / (n - p - 1)) if n > p + 1 else r2_model
+        )
+
+    # 4. Construct the metrics dictionary dynamically
     report_metrics = {}
     if is_log_transformed:
         report_metrics["R2_Score (Log)"] = round(float(r2_model), 4)
+        report_metrics["Adjusted_R2 (Log)"] = round(float(adj_r2_log), 4)
         report_metrics["R2_Score (Rupee)"] = round(float(r2_rupee), 4)
+        report_metrics["Adjusted_R2 (Rupee)"] = round(float(adj_r2_rupee), 4)
     else:
         report_metrics["R2_Score"] = round(float(r2_rupee), 4)
+        report_metrics["Adjusted_R2"] = round(float(adj_r2_rupee), 4)
 
     report_metrics["RMSE (Rupee)"] = round(float(rmse), 2)
     report_metrics["MAE (Rupee)"] = round(float(mae), 2)
     report_metrics["MAPE (%)"] = f"{round(float(mape), 2)}%"
 
-    # 4. Construct the report structure
+    # 5. Construct the report structure
     report_data = {
         "model_type": (
             "Linear Regression (Optimized)"
@@ -76,20 +93,31 @@ def generate_benchmark_report(
         "metrics": report_metrics,
     }
 
-    # 5. Save to JSON
+    # 6. Save to JSON
     report_path = REPORTS_DIR / output_file
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump(report_data, f, indent=4)
 
     print(f"[+] Report generated at: {report_path}")
-    print(f"    -> Total Features  : {total_features}")  # <--- IN RA TERMINAL
+    print(f"    -> Total Features  : {total_features}")
 
     # Dynamic Print out
     if is_log_transformed:
-        print(f"    -> R2_Score (Log)  : {report_data['metrics']['R2_Score (Log)']}")
-        print(f"    -> R2_Score (Rupee): {report_data['metrics']['R2_Score (Rupee)']}")
+        print(
+            f"    -> R2_Score (Log)      : {report_data['metrics']['R2_Score (Log)']}"
+        )
+        print(
+            f"    -> Adjusted R2 (Log)   : {report_data['metrics']['Adjusted_R2 (Log)']}"
+        )
+        print(
+            f"    -> R2_Score (Rupee)    : {report_data['metrics']['R2_Score (Rupee)']}"
+        )
+        print(
+            f"    -> Adjusted R2 (Rupee) : {report_data['metrics']['Adjusted_R2 (Rupee)']}"
+        )
     else:
-        print(f"    -> R2_Score        : {report_data['metrics']['R2_Score']}")
+        print(f"    -> R2_Score            : {report_data['metrics']['R2_Score']}")
+        print(f"    -> Adjusted R2         : {report_data['metrics']['Adjusted_R2']}")
 
     print(f"    -> RMSE: {report_data['metrics']['RMSE (Rupee)']}")
     print(f"    -> MAE:  {report_data['metrics']['MAE (Rupee)']}")
