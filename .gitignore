@@ -23,3 +23,17 @@ reports/*.synctex.gz
 # Ignore model output files and artifacts
 *.pkl
 reports/baseline_report.json
+
+# ==========================================
+# MLOps & Tracking Artifacts (NEW)
+# ==========================================
+mlruns/
+mlflow.db
+mlflow.db-journal
+
+# ==========================================
+# Models & Reports (Generated outputs) (UPDATED)
+# ==========================================
+*.pkl
+models/*.pkl
+reports/*.json
