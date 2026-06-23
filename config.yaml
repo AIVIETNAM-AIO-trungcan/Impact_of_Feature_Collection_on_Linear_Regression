@@ -32,8 +32,7 @@ experiment:
   log_features:
     - "area"
 
-  # Feature Selection (Gatekeeper) configuration
-  # use_feature_selector: Boolean toggle to enable/disable univariate selection
-  # top_k_features: Integer defines the number of top-scoring features to retain
-  use_feature_selector: True
-  top_k_features: 20
+  # Selection settings used by Feature Selection Stage in main.py
+  selection_settings:
+    top_k_features: 10
+    criterion: "aic"
