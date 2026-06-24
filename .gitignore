@@ -17,8 +17,8 @@ pycache/
 
 ==========================================
 
-data/raw/.csv
-data/processed/.csv
+data/raw/*.csv
+data/processed/*.csv
 *.xlsx
 *.parquet
 
@@ -46,13 +46,13 @@ reports/figures/*.png
 
 Ignore generated JSON metrics
 
-reports/metrics/.json
-reports/.json
+reports/metrics/*.json
+reports/*.json
 
 Ignore generated Leaderboard CSV & HTML
 
-reports/.csv
-reports/.html
+reports/*.csv
+reports/*.html
 
 ==========================================
 
@@ -60,10 +60,10 @@ reports/.html
 
 ==========================================
 
-reports/.aux
-reports/.log
-reports/.out
-reports/.toc
-reports/.fls
-reports/.fdb_latexmk
+reports/*.aux
+reports/*.log
+reports/*.out
+reports/*.toc
+reports/*.fls
+reports/*.fdb_latexmk
 reports/*.synctex.gz

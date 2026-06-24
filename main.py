@@ -50,13 +50,26 @@ def run_pipeline():
         num_cols = cfg["features"]["numerical_cols"]
         cat_cols = cfg["features"]["categorical_cols"]
 
-        # Separate features (X) for processing
+        # ==========================================================
+        # Prepare X and y
+        # ==========================================================
+
         X_train_raw = df_train.drop(columns=["amount"])
         X_test_raw = df_test.drop(columns=["amount"])
 
-        # Clean and synchronize features (Fit on Train, Transform Test to avoid leakage)
+        y_train = df_train["amount"].copy()
+        y_test = df_test["amount"].copy()
+
+        # ==========================================================
+        # Feature Processing
+        # ==========================================================
+
         X_train_clean, X_test_clean = fit_transform_features(
-            X_train_raw, X_test_raw, num_cols, cat_cols
+            X_train_raw,
+            X_test_raw,
+            y_train,
+            num_cols,
+            cat_cols,
         )
 
         # ---------------------------------------------------------
@@ -69,9 +82,6 @@ def run_pipeline():
         X_test_transformed = apply_feature_transform(
             X_test_clean, cfg, dataset_name="Test"
         )
-
-        y_train = df_train["amount"].copy()
-        y_test = df_test["amount"].copy()
 
         transform_mode = cfg.get("experiment", {}).get("target_transform", "raw")
         is_log = transform_mode == "log"
