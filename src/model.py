@@ -1,3 +1,9 @@
+# =====================================================================
+# MODULE: Model Engine
+# DESCRIPTION: Trains machine learning models dynamically, extracts
+#              statistical metrics, and exports production models.
+# =====================================================================
+
 import joblib
 import pandas as pd
 import numpy as np
@@ -8,6 +14,9 @@ from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from src.config import MODELS_DIR
 
 
+# ---------------------------------------------------------
+# 1. DYNAMIC MODEL TRAINING FUNCTION
+# ---------------------------------------------------------
 def train_dynamic_model(
     df_train,
     df_test,
@@ -17,15 +26,29 @@ def train_dynamic_model(
     model_name="model.pkl",
 ):
     """
-    Huấn luyện mô hình linh hoạt, kết hợp trích xuất chỉ số thống kê (AIC, BIC).
+    Trains a machine learning model dynamically and extracts statistical metrics (AIC, BIC).
 
-    Hàm này thực hiện hai nhiệm vụ song song:
-    1. Dùng statsmodels để lấy các chỉ số chuyên sâu (AIC, BIC, Adj R2) cho báo cáo.
-    2. Dùng scikit-learn để huấn luyện mô hình chính và lưu ra file .pkl phục vụ Production.
+    This function performs two parallel tasks:
+    1. Uses statsmodels to extract advanced statistical metrics for reporting.
+    2. Uses scikit-learn to train the main model and exports it as a .pkl file for production.
+
+    Args:
+        df_train (pd.DataFrame): Training dataset.
+        df_test (pd.DataFrame): Testing dataset.
+        config (dict): Pipeline configuration dictionary.
+        selected_features (list, optional): List of features to use. Defaults to None.
+        target_column (str): Target variable name. Defaults to "amount".
+        model_name (str): Output filename for the trained model. Defaults to "model.pkl".
+
+    Returns:
+        tuple: (trained_model, metrics_dictionary)
     """
-    print(f"\n[-] Starting model training: {model_name}...")
+    print(f"\n      [~] Starting model training: {model_name}...")
 
-    # 1. Cắt xén dữ liệu dựa trên danh sách biến đã được Feature Selector chọn lọc
+    # ---------------------------------------------------------
+    # 1. DATA SUBSETTING
+    # ---------------------------------------------------------
+    # Filter features based on the Feature Selector's output
     if selected_features:
         X_train = df_train[selected_features]
         X_test = df_test[selected_features]
@@ -36,20 +59,16 @@ def train_dynamic_model(
     y_train = df_train[target_column]
     y_test = df_test[target_column]
 
-    # =====================================================================
-    # BƯỚC LAI GHÉP: Dùng statsmodels để lấy AIC, BIC
-    # =====================================================================
+    # ---------------------------------------------------------
+    # 2. HYBRID STEP: EXTRACT STATISTICAL METRICS (STATSMODELS)
+    # ---------------------------------------------------------
     aic, bic, train_adj_r2 = None, None, None
     try:
         print("      [~] Extracting statistical metrics (AIC, BIC) via statsmodels...")
 
-        # 1. Chỉ chọn các cột có kiểu dữ liệu là số
+        # Select only numerical columns, handle NaNs, and force float type
         X_train_numeric = X_train.select_dtypes(include=[np.number])
-
-        # 2. Xử lý sạch sẽ NaN hoặc dữ liệu lỗi
         X_train_clean = X_train_numeric.fillna(0)
-
-        # 3. Ép kiểu cứng sang float
         X_train_float = X_train_clean.astype(float)
 
         X_train_const = sm.add_constant(X_train_float, has_constant="add")
@@ -62,54 +81,62 @@ def train_dynamic_model(
     except Exception as e:
         print(f"      [!] Statistical metric extraction skipped: {e}")
 
-    # =====================================================================
-    # HUẤN LUYỆN CHÍNH: Dùng Scikit-learn để Productionize
-    # =====================================================================
+    # ---------------------------------------------------------
+    # 3. PRODUCTION TRAINING: SKLEARN ENGINE
+    # ---------------------------------------------------------
     model_params = config.get("model_params", {})
     algo = model_params.get("algorithm", "LinearRegression")
 
+    # Ensure X_train and X_test are numeric for Scikit-learn to prevent fitting errors
+    X_train_sklearn = X_train.select_dtypes(include=[np.number]).fillna(0)
+    X_test_sklearn = X_test.select_dtypes(include=[np.number]).fillna(0)
+
     if algo == "RandomForestRegressor":
-        print("      -> Algorithm: RandomForestRegressor")
+        print("      [>] Algorithm: RandomForestRegressor")
         model = RandomForestRegressor(
             n_estimators=model_params.get("n_estimators", 100),
             max_depth=model_params.get("max_depth", 5),
             random_state=model_params.get("random_state", 42),
         )
     else:
-        print("      -> Algorithm: LinearRegression")
+        print("      [>] Algorithm: LinearRegression")
         model = LinearRegression()
 
-    # Huấn luyện mô hình Scikit-learn
-    model.fit(X_train, y_train)
+    # Train Scikit-learn model
+    model.fit(X_train_sklearn, y_train)
 
-    # Dự đoán trên tập Test
-    y_pred = model.predict(X_test)
+    # Predict on Test set
+    y_pred = model.predict(X_test_sklearn)
 
-    # Đánh giá cơ bản
+    # ---------------------------------------------------------
+    # 4. EVALUATION & METRICS PACKAGING
+    # ---------------------------------------------------------
     r2 = r2_score(y_test, y_pred)
     rmse = mean_squared_error(y_test, y_pred) ** 0.5
     mae = mean_absolute_error(y_test, y_pred)
 
-    # Đóng gói toàn bộ metrics (Gồm cả của Scikit-learn và Statsmodels)
+    # Package all metrics (Scikit-learn + Statsmodels)
     metrics = {
         "model_type": algo,
-        "total_features": len(X_train.columns),
-        "features_used": list(X_train.columns),
+        "total_features": len(X_train_sklearn.columns),
+        "features_used": list(X_train_sklearn.columns),
         "R2_Score": round(r2, 4),
         "RMSE": round(rmse, 4),
         "MAE": round(mae, 4),
-        # Giữ lại y_true, y_pred để report.py tính Adjusted R2 trên tập Test (như đã làm ở nhánh trước)
+        # Keep y_true, y_pred for report.py to calculate metrics on the native scale
         "y_true": y_test.tolist(),
         "y_pred": y_pred.tolist(),
-        # Thêm các chỉ số thống kê chuyên sâu trên tập Train (Dành riêng cho Hoàng)
+        # Include advanced training metrics
         "Train_AIC": round(aic, 4) if aic is not None else None,
         "Train_BIC": round(bic, 4) if bic is not None else None,
         "Train_Adj_R2": round(train_adj_r2, 4) if train_adj_r2 is not None else None,
     }
 
-    # Lưu mô hình
+    # ---------------------------------------------------------
+    # 5. MODEL EXPORT
+    # ---------------------------------------------------------
     model_path = MODELS_DIR / model_name
     joblib.dump(model, model_path)
-    print(f"      [+] Model saved successfully at: {model_path}")
+    print(f"      [+] Model saved successfully at: {model_path.name}")
 
     return model, metrics
