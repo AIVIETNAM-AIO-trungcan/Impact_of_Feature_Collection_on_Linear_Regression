@@ -1,3 +1,9 @@
+# =====================================================================
+# MODULE: Automated Reports
+# DESCRIPTION: Generates visualizations, JSON benchmark reports, and
+#              aggregates leaderboard metrics for experiment tracking.
+# =====================================================================
+
 import json
 import numpy as np
 import pandas as pd
@@ -7,7 +13,7 @@ import time
 import textwrap
 import sys
 
-# SAFE CONFIGURATION: Force Matplotlib to use 'Agg' backend
+# SAFE CONFIGURATION: Force Matplotlib to use 'Agg' backend for headless server support
 import matplotlib
 
 matplotlib.use("Agg")
@@ -19,12 +25,21 @@ from sklearn.metrics import r2_score
 from src.config import REPORTS_DIR
 
 
+# ---------------------------------------------------------
+# 1. VISUALIZATION ENGINE
+# ---------------------------------------------------------
 def generate_visualizations(y_true_real, y_pred_real, method_name, target_mode="Raw"):
     """
-    Automatically generates an Actual vs Predicted scatter plot.
+    Generates and saves an Actual vs Predicted scatter plot.
+
+    Args:
+        y_true_real (np.array): Ground truth target values in real currency.
+        y_pred_real (np.array): Predicted target values in real currency.
+        method_name (str): Name of the feature selection method.
+        target_mode (str): Indicator of target transformation ("Raw" or "Log").
     """
     try:
-        print(f"      [-] Generating scatter plot for {method_name}...")
+        print(f"      [~] Generating scatter plot for {method_name}...")
         plt.figure(figsize=(10, 6))
 
         plt.scatter(
@@ -77,6 +92,9 @@ def generate_visualizations(y_true_real, y_pred_real, method_name, target_mode="
         plt.close()
 
 
+# ---------------------------------------------------------
+# 2. BENCHMARK REPORTING
+# ---------------------------------------------------------
 def generate_benchmark_report(
     metrics,
     output_file="report.json",
@@ -85,25 +103,35 @@ def generate_benchmark_report(
     execution_time=None,
 ):
     """
-    Generates JSON report and routes it to reports/metrics folder.
+    Processes metrics, computes native errors, and generates a JSON benchmark report.
+
+    Args:
+        metrics (dict): Dictionary containing prediction arrays and extraction metrics.
+        output_file (str): Output JSON filename. Defaults to "report.json".
+        is_log_transformed (bool): Whether the target was log-transformed. Defaults to False.
+        selector_context (dict, optional): Context containing method name. Defaults to None.
+        execution_time (float, optional): Elapsed execution time. Defaults to None.
+
+    Returns:
+        dict: Processed report data dictionary ready for Leaderboard aggregation.
     """
     method_name = (
         selector_context.get("method", "Baseline").upper()
         if selector_context
         else "BASELINE"
     )
-    print(f"      [-] Generating benchmark report & visuals for {method_name}...")
+    print(f"      [~] Generating benchmark report & visuals for {method_name}...")
 
     target_mode = "Log" if is_log_transformed else "Raw"
 
     y_true = np.array(metrics["y_true"])
     y_pred = np.array(metrics["y_pred"])
 
-    # CHÍNH XÁC: Tính R2 trên đúng thang đo mà mô hình đã học (Log scale nếu có áp dụng)
-    # Điều này phản ánh trung thực khả năng giải thích phương sai của mô hình
+    # ACCURATE EVALUATION: Calculate R2 on the exact scale the model learned (e.g., Log scale).
+    # This truly reflects the model's capacity to explain the variance of its target.
     test_r2 = r2_score(y_true, y_pred)
 
-    # LUÔN ÉP VỀ ĐƠN VỊ THỰC TẾ (RUPEE) ĐỂ TÍNH SAI SỐ RA TIỀN VÀ VẼ BIỂU ĐỒ
+    # ALWAYS CONVERT BACK TO REAL CURRENCY (RUPEES) for monetary error calculation and plotting.
     if is_log_transformed:
         y_true_real = np.expm1(y_true)
         y_pred_real = np.expm1(y_pred)
@@ -113,7 +141,7 @@ def generate_benchmark_report(
 
     generate_visualizations(y_true_real, y_pred_real, method_name, target_mode)
 
-    # TÍNH TOÁN CÁC CHỈ SỐ SAI SỐ TRÊN ĐƠN VỊ THỰC
+    # CALCULATE ERROR METRICS ON REAL-WORLD SCALE
     test_rmse = np.sqrt(np.mean((y_true_real - y_pred_real) ** 2))
     test_mae = np.mean(np.abs(y_true_real - y_pred_real))
 
@@ -124,8 +152,8 @@ def generate_benchmark_report(
     features_list = metrics.get("features_used", [])
     num_features = len(features_list)
 
-    # SMART TRUNCATION: Hiển thị trọn vẹn cho mô hình chọn ít biến (để lấy insight),
-    # và thu gọn cho mô hình dùng quá nhiều biến (Baseline, Backward) để chống tràn CSV/Terminal.
+    # SMART TRUNCATION: Display full features for sparse models (for insights),
+    # but truncate dense models (Baseline, Backward) to prevent CSV/Terminal overflow.
     if num_features <= 15:
         features_display = ", ".join(features_list)
     else:
@@ -161,15 +189,21 @@ def generate_benchmark_report(
     return report_data
 
 
+# ---------------------------------------------------------
+# 3. LEADERBOARD & AGGREGATION
+# ---------------------------------------------------------
 def generate_leaderboard_charts(df_leaderboard):
     """
-    Generates Analytical Charts:
+    Generates Analytical Charts comparing multiple models:
     1. RMSE Comparison (Lower is Better)
-    2. Trade-off (Features vs Time)
+    2. Trade-off (Features vs Execution Time)
     3. R2 Comparison (Higher is Better)
+
+    Args:
+        df_leaderboard (pd.DataFrame): Aggregated metrics DataFrame.
     """
     try:
-        print("   [-] Generating Leaderboard Analytical Charts with Annotations...")
+        print("      [~] Generating Leaderboard Analytical Charts with Annotations...")
         figures_dir = Path(REPORTS_DIR) / "figures"
         figures_dir.mkdir(parents=True, exist_ok=True)
 
@@ -180,7 +214,7 @@ def generate_leaderboard_charts(df_leaderboard):
         )
 
         # =========================================================
-        # CHART 1: Test RMSE Comparison (Càng thấp càng tốt)
+        # CHART 1: Test RMSE Comparison (Lower is Better)
         # =========================================================
         plt.figure(figsize=(10, 6))
         df_sorted_rmse = df_leaderboard.sort_values("Test_RMSE").reset_index(drop=True)
@@ -202,7 +236,7 @@ def generate_leaderboard_charts(df_leaderboard):
         plt.ylabel("Test RMSE (Rupees)", fontsize=12)
         plt.xticks(rotation=45)
 
-        # FIX LỖI OVERLAP: Tăng độ cao (trần) của trục Y lên 20%
+        # PREVENT OVERLAP: Increase the Y-axis ceiling by 20%
         max_rmse = df_sorted_rmse["Test_RMSE"].max()
         plt.ylim(0, max_rmse * 1.2)
 
@@ -319,15 +353,16 @@ def generate_leaderboard_charts(df_leaderboard):
         plt.close()
 
         # =========================================================
-        # CHART 3: Test R2 Comparison (Càng cao càng tốt)
+        # CHART 3: Test R2 Comparison (Higher is Better)
         # =========================================================
         plt.figure(figsize=(10, 6))
-        # R2 Càng cao càng tốt nên phải Sort Ascending = False
+
+        # R2 is "Higher is Better", so sort descending
         df_sorted_r2 = df_leaderboard.sort_values(
             "Test_R2", ascending=False
         ).reset_index(drop=True)
 
-        # Chọn màu XANH LÁ (Green) cho Kẻ chiến thắng R2
+        # Highlight the R2 winner with GREEN
         highlight_colors_r2 = [
             "#27ae60" if i == 0 else "#bdc3c7" for i in range(len(df_sorted_r2))
         ]
@@ -342,21 +377,19 @@ def generate_leaderboard_charts(df_leaderboard):
             fontweight="bold",
         )
         plt.xlabel("Selection Method", fontsize=12)
-        plt.ylabel(
-            f"Test R² ({target_mode} Scale)", fontsize=12
-        )  # Hiển thị rõ Log Scale hay Raw Scale
+        plt.ylabel(f"Test R² ({target_mode} Scale)", fontsize=12)
         plt.xticks(rotation=45)
 
-        # Tăng trần Y lên 20% và xử lý trường hợp R2 âm
+        # Increase Y-axis ceiling and handle negative R2 cases (if model performs worse than a flat line)
         max_r2 = df_sorted_r2["Test_R2"].max()
         min_r2 = df_sorted_r2["Test_R2"].min()
-        y_bottom = min(0, min_r2 * 1.2)  # Cho phép hiện giá trị âm nếu mô hình quá tệ
+        y_bottom = min(0, min_r2 * 1.2)
         plt.ylim(y_bottom, max_r2 * 1.2 if max_r2 > 0 else max_r2 * 0.8)
 
         for index, value in enumerate(df_sorted_r2["Test_R2"]):
             weight = "bold" if index == 0 else "normal"
             fontsize_val = 12 if index == 0 else 10
-            # Hiển thị 4 chữ số thập phân cho R2
+            # Display 4 decimal places for R2 score
             plt.text(
                 index,
                 value,
@@ -382,7 +415,7 @@ def generate_leaderboard_charts(df_leaderboard):
         plt.close()
 
     except Exception as e:
-        print(f"   [!] Warning: Failed to generate leaderboard charts. Error: {e}")
+        print(f"      [!] Warning: Failed to generate leaderboard charts. Error: {e}")
         plt.close()
 
 
@@ -390,8 +423,12 @@ def generate_leaderboard(
     all_reports_data, output_filename="experiment_leaderboard.csv"
 ):
     """
-    Aggregates results and exports to a clean CSV.
+    Aggregates results and exports them to a clean CSV.
     Prints a well-formatted Pandas table to the terminal.
+
+    Args:
+        all_reports_data (list): List of dictionaries containing metrics from all runs.
+        output_filename (str): Name of the output CSV file. Defaults to "experiment_leaderboard.csv".
     """
     if not all_reports_data:
         return
@@ -409,14 +446,18 @@ def generate_leaderboard(
 
     try:
         df_leaderboard.to_csv(leaderboard_path, index=False, encoding="utf-8")
-        print(f" [+] Leaderboard CSV saved at: {leaderboard_path}\n")
+        print(
+            f"      [>] Leaderboard CSV successfully saved at: {leaderboard_path.name}\n"
+        )
     except PermissionError:
         fallback_filename = output_filename.replace(
             ".csv", f"_backup_{int(time.time())}.csv"
         )
         fallback_path = Path(REPORTS_DIR) / fallback_filename
         df_leaderboard.to_csv(fallback_path, index=False, encoding="utf-8")
-        print(f" [!] Warning: '{output_filename}' is locked. Saved backup instead.\n")
+        print(
+            f"      [!] Warning: '{output_filename}' is locked. Saved backup instead.\n"
+        )
 
     display_cols = [
         "Model",
@@ -429,7 +470,7 @@ def generate_leaderboard(
     ]
     existing_cols = [col for col in display_cols if col in df_leaderboard.columns]
 
-    # Định dạng lại cách Pandas in ra terminal (cho phép tự wrap text dài mà không chèn \n vào CSV gốc)
+    # Reformat Pandas terminal output (allows wrapping long text without injecting \n into the actual CSV)
     pd.set_option("display.max_colwidth", 70)
 
     print("\n" + "=" * 125)
@@ -441,27 +482,25 @@ def generate_leaderboard(
     pd.reset_option("display.max_colwidth")
 
 
-# =====================================================================
-# CHẾ ĐỘ CHẠY ĐỘC LẬP (STANDALONE MODE)
-# =====================================================================
+# ---------------------------------------------------------
+# 4. STANDALONE EXECUTION MODE
+# ---------------------------------------------------------
 if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("🚀 STANDALONE REPORT GENERATOR ACTIVATED")
     print("=" * 60)
 
-    # Tự động tìm kiếm tất cả các file JSON hiện có trong reports/metrics/
+    # Automatically discover all existing JSON files in reports/metrics/
     metrics_dir = Path(REPORTS_DIR) / "metrics"
     json_files = list(metrics_dir.glob("report_*.json"))
 
     if not json_files:
         print(
-            f"❌ Không tìm thấy file JSON nào trong '{metrics_dir}'. Hãy chạy main.py trước."
+            f"❌ [ERROR] No JSON report files found in '{metrics_dir}'. Please execute main.py first."
         )
         sys.exit(1)
 
-    print(
-        f"[*] Tìm thấy {len(json_files)} file báo cáo JSON. Đang tiến hành tổng hợp..."
-    )
+    print(f"[*] Found {len(json_files)} JSON report files. Commencing aggregation...")
 
     all_reports_data = []
     for file_path in json_files:
@@ -469,7 +508,7 @@ if __name__ == "__main__":
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-                # Biến list Features trong JSON thành chuỗi (áp dụng lại rule Truncation)
+                # Convert JSON list back to string (re-applying truncation rules)
                 features_list = data.get("Features", [])
                 if isinstance(features_list, list):
                     num_features = len(features_list)
@@ -483,8 +522,8 @@ if __name__ == "__main__":
 
                 all_reports_data.append(data)
         except Exception as e:
-            print(f" [!] Lỗi khi đọc file {file_path.name}: {e}")
+            print(f"      [!] Error parsing file {file_path.name}: {e}")
 
-    # Gọi thẳng hàm tạo Bảng xếp hạng và vẽ biểu đồ
+    # Directly invoke the Leaderboard and Chart generation engine
     generate_leaderboard(all_reports_data)
-    print("✅ Đã cập nhật lại toàn bộ Leaderboard CSV & Biểu đồ PNG thành công!")
+    print("✅ Leaderboard CSV & Visual Charts successfully updated!")
