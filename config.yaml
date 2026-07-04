@@ -1,0 +1,68 @@
+# =====================================================================
+# CONFIGURATION: Pipeline & Experiment Settings
+# DESCRIPTION: Centralized configuration file for feature selection,
+#              model hyperparameters, and experiment tracking.
+# =====================================================================
+
+# ---------------------------------------------------------
+# 1. FEATURE CONFIGURATION (Data Engineering)
+# ---------------------------------------------------------
+features:
+  # Continuous/Numeric variables to be processed
+  numerical_cols:
+    - area
+    - bathroom
+    - balcony
+    - room_floor
+    - total_floor
+    - main_road_view
+    - amenity_view
+
+  # Categorical variables requiring encoding (e.g., One-Hot Encoding)
+  categorical_cols:
+    - location
+    - transaction
+    - furnishing
+    - facing
+    - ownership
+
+# ---------------------------------------------------------
+# 2. MODEL PARAMETERS (Model Engineering)
+# ---------------------------------------------------------
+model_params:
+  # Machine learning algorithm to be trained (e.g., RandomForestRegressor, LinearRegression)
+  algorithm: "RandomForestRegressor"
+
+  # Number of trees in the forest (Applicable for Random Forest)
+  n_estimators: 100
+
+  # Maximum depth of the tree to prevent overfitting
+  max_depth: 5
+
+  # Seed for random number generator to ensure reproducibility
+  random_state: 42
+
+# ---------------------------------------------------------
+# 3. EXPERIMENT SETTINGS (Pipeline Orchestration)
+# ---------------------------------------------------------
+experiment:
+  # Target column for predictive modeling (Ground Truth)
+  target_col: "amount"
+
+  # Target transformation mode to handle skewness: "raw" (no change) or "log" (np.log1p)
+  target_transform: "log"
+
+  # List of input features requiring log transformation to normalize distributions
+  log_features:
+    - "area"
+
+  # ---------------------------------------------------------
+  # 3.1. FEATURE SELECTION SETTINGS
+  # ---------------------------------------------------------
+  selection_settings:
+    # Maximum number of features to select for Filter and Best Subset methods
+    top_k_features: 10
+
+    # Evaluation metric used by iterative methods (Forward, Backward, Best Subset)
+    # Supported options: "aic", "bic", "adj_r2"
+    criterion: "aic"

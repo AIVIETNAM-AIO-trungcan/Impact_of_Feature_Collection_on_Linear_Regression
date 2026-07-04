@@ -1,17 +1,65 @@
-# Ignore virtual environment
+==========================================
+
+1. Python Environment & Cache
+
+==========================================
+
 .venv/
-
-# Ignore Python cache
-__pycache__/
+env/
+pycache/
 *.py[cod]
+*$py.class
+.ipynb_checkpoints/
 
-# Ignore data files
+==========================================
+
+2. Data Files (Do not push data to Git)
+
+==========================================
+
 data/raw/*.csv
 data/processed/*.csv
 *.xlsx
 *.parquet
 
-# Ignore LaTeX build temporary files
+==========================================
+
+3. Models & MLflow Tracking
+
+==========================================
+
+models/*.pkl
+*.pkl
+mlruns/
+mlflow.db
+mlflow.db-journal
+
+==========================================
+
+4. Reports & Generated Outputs
+
+==========================================
+
+Ignore generated charts and figures
+
+reports/figures/*.png
+
+Ignore generated JSON metrics
+
+reports/metrics/*.json
+reports/*.json
+
+Ignore generated Leaderboard CSV & HTML
+
+reports/*.csv
+reports/*.html
+
+==========================================
+
+5. LaTeX Build Temporary Files
+
+==========================================
+
 reports/*.aux
 reports/*.log
 reports/*.out
